@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberTerminal</title>
+    <title>CyberTerminal v2</title>
     <style>
         :root {
             --bg-color: #0d0e15;
@@ -19,7 +19,7 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -31,10 +31,8 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            perspective: 1000px;
         }
 
-        /* Контейнер терминала с эффектом стекла */
         .terminal {
             width: 100%;
             max-width: 400px;
@@ -50,20 +48,17 @@
             flex-direction: column;
         }
 
-        /* Общий стиль для экранов (окон) */
         .screen {
             position: absolute;
             inset: 0;
-            padding: 30px;
+            padding: 25px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.6s;
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s;
             opacity: 0;
             pointer-events: none;
         }
 
-        /* Состояния экранов для плавного переплыва */
         .screen.active {
             opacity: 1;
             pointer-events: auto;
@@ -71,39 +66,42 @@
         }
 
         .screen.left {
-            transform: translateX(-100%) scale(0.9);
+            transform: translateX(-100%) scale(0.95);
         }
 
         .screen.right {
-            transform: translateX(100%) scale(0.9);
+            transform: translateX(100%) scale(0.95);
         }
 
-        /* Шапка */
-        .header {
-            text-align: center;
-            margin-top: 10px;
+        /* ЭКРАН 1: Главный блок сверху */
+        .top-block {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
         .header h1 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             text-transform: uppercase;
             letter-spacing: 2px;
             color: var(--text-muted);
+            text-align: center;
         }
 
-        /* ЭКРАН 1: Ввод суммы */
         .display-container {
-            flex: 1;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
         }
 
         .amount-display {
-            font-size: 3.5rem;
+            font-size: 3.2rem;
             font-weight: 700;
-            margin-bottom: 10px;
             color: var(--accent-color);
             text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
         }
@@ -114,72 +112,81 @@
             margin-left: 5px;
         }
 
-        /* Кастомная клавиатура */
+        /* КНОПКА ТЕПЕРЬ ТУТ (ВВЕРХУ) */
+        .btn-pay {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 18px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+            box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+        }
+
+        .btn-pay:active {
+            transform: scale(0.98);
+            background: var(--accent-hover);
+        }
+
+        /* Клавиатура сдвинута вниз */
         .keyboard {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
+            gap: 12px;
+            flex: 1;
+            padding-bottom: 10px;
         }
 
         .key {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.05);
             color: var(--text-color);
-            font-size: 1.5rem;
-            padding: 20px;
+            font-size: 1.6rem;
             border-radius: 16px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s;
             font-weight: 600;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .key:active {
-            background: var(--accent-color);
-            transform: scale(0.95);
-            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0.92);
         }
 
         .key.action {
-            background: rgba(99, 102, 241, 0.1);
-            color: var(--accent-color);
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
         }
 
-        .btn-pay {
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 18px;
-            border-radius: 16px;
-            font-size: 1.2rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-pay:hover { background: var(--accent-hover); }
-
-        /* ЭКРАН 2: Ожидание NFC */
-        .nfc-animation-container {
+        /* ЭКРАН 2: NFC */
+        .nfc-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            gap: 30px;
+            padding: 40px 0;
         }
 
-        /* Пульсирующие волны NFC */
         .nfc-wave {
-            width: 100px;
-            height: 100px;
-            background: rgba(99, 102, 241, 0.2);
+            width: 120px;
+            height: 120px;
+            background: rgba(99, 102, 241, 0.15);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
+            margin: auto 0;
         }
 
         .nfc-wave::before, .nfc-wave::after {
@@ -193,56 +200,44 @@
 
         .nfc-wave::after { animation-delay: 1s; }
 
-        .nfc-icon {
-            font-size: 2.5rem;
-            animation: float 3s infinite ease-in-out;
-        }
+        .nfc-icon { font-size: 3rem; animation: float 3s infinite ease-in-out; }
 
         .status-text {
             color: var(--text-muted);
             font-size: 1.1rem;
             text-align: center;
-            animation: blink 1.5s infinite;
+            margin-bottom: 20px;
         }
 
-        /* ЭКРАН 3: Успех */
+        /* ЭКРАН 3: УСПЕХ */
         .success-screen {
-            background: linear-gradient(135deg, #0d0e15 0%, #062016 100%);
-        }
-
-        .success-icon-box {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            background: linear-gradient(135deg, #0d0e15 0%, #052e16 100%);
             justify-content: center;
             align-items: center;
-            gap: 20px;
+            gap: 30px;
         }
 
         .checkmark-circle {
-            width: 120px;
-            height: 120px;
+            width: 130px;
+            height: 130px;
             background: rgba(16, 185, 129, 0.1);
             border: 3px solid var(--success-color);
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 0 30px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
             transform: scale(0);
             transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .screen.active .checkmark-circle {
-            transform: scale(1);
-        }
+        .screen.active .checkmark-circle { transform: scale(1); }
 
-        .checkmark {
-            font-size: 4rem;
-            color: var(--success-color);
-        }
+        .checkmark { font-size: 4.5rem; color: var(--success-color); }
 
-        /* Анимации */
+        .success-text { text-align: center; }
+        .success-text h2 { font-size: 1.8rem; margin-bottom: 10px; }
+
         @keyframes pulse {
             0% { transform: scale(1); opacity: 1; }
             100% { transform: scale(2.2); opacity: 0; }
@@ -250,24 +245,18 @@
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-8px); }
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
-
-        /* Кнопка ручного теста для ПК / айфонов */
         .fallback-btn {
             background: transparent;
             border: 1px dashed var(--text-muted);
             color: var(--text-muted);
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.8rem;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
             cursor: pointer;
-            margin-top: 15px;
+            width: 100%;
         }
     </style>
 </head>
@@ -276,12 +265,16 @@
     <div class="terminal">
         
         <div id="screen-amount" class="screen active">
-            <div class="header">
-                <h1>Cyber Terminal</h1>
+            <div class="top-block">
+                <div class="header">
+                    <h1>Cyber Terminal</h1>
+                </div>
+                <div class="display-container">
+                    <div class="amount-display"><span id="sum-value">0</span><span class="currency">₽</span></div>
+                </div>
+                <button class="btn-pay" onclick="goToNfc()">К оплате →</button>
             </div>
-            <div class="display-container">
-                <div class="amount-display"><span id="sum-value">0</span><span class="currency">₽</span></div>
-            </div>
+
             <div class="keyboard">
                 <button class="key" onclick="appendNum('1')">1</button>
                 <button class="key" onclick="appendNum('2')">2</button>
@@ -294,34 +287,35 @@
                 <button class="key" onclick="appendNum('9')">9</button>
                 <button class="key action" onclick="clearSum()">C</button>
                 <button class="key" onclick="appendNum('0')">0</button>
-                <button class="key action" onclick="appendNum('.')">.</button>
+                <button class="key" onclick="appendNum('.')">.</button>
             </div>
-            <button class="btn-pay" onclick="goToNfc()">К оплате</button>
         </div>
 
         <div id="screen-nfc" class="screen right">
             <div class="header">
                 <h1>Оплата</h1>
             </div>
-            <div class="nfc-animation-container">
+            <div class="nfc-container">
                 <div class="amount-display" id="target-sum">0 ₽</div>
                 <div class="nfc-wave">
                     <div class="nfc-icon">📱</div>
                 </div>
-                <div class="status-text" id="nfc-status">Приложите карту или телефон</div>
+                <div style="width: 100%;">
+                    <div class="status-text" id="nfc-status">Приложите карту или телефон</div>
+                    <button class="fallback-btn" onclick="triggerSuccess()">Симулировать касание (без NFC)</button>
+                </div>
             </div>
-            <button class="fallback-btn" onclick="triggerSuccess()">Симулировать касание (без NFC)</button>
         </div>
 
         <div id="screen-success" class="screen right success-screen">
-            <div class="success-icon-box">
-                <div class="checkmark-circle">
-                    <div class="checkmark">✓</div>
-                </div>
-                <h2>Оплачено успешно</h2>
-                <p style="color: var(--text-muted);" id="final-sum">0.00 ₽</p>
+            <div class="checkmark-circle">
+                <div class="checkmark">✓</div>
             </div>
-            <button class="btn-pay" style="background: var(--success-color);" onclick="resetTerminal()">Новый платеж</button>
+            <div class="success-text">
+                <h2>Успешно оплачено</h2>
+                <div class="amount-display" id="final-sum" style="font-size: 2.5rem; color: var(--success-color);">0.00 ₽</div>
+            </div>
+            <button class="btn-pay" style="background: var(--success-color); box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.4);" onclick="resetTerminal()">Новый платеж</button>
         </div>
 
     </div>
@@ -335,7 +329,6 @@
         let ndef = null;
         let abortController = null;
 
-        // Логика клавиатуры
         function updateDisplay() {
             document.getElementById('sum-value').innerText = currentSum;
         }
@@ -355,7 +348,6 @@
             updateDisplay();
         }
 
-        // Переплыв на экран NFC
         function goToNfc() {
             if (parseFloat(currentSum) <= 0) {
                 alert("Введите сумму больше 0");
@@ -369,48 +361,37 @@
             startNFC();
         }
 
-        // Активация датчика NFC
         async function startNFC() {
             if ('NDEFReader' in window) {
                 try {
                     abortController = new AbortController();
                     ndef = new NDEFReader();
                     await ndef.scan({ signal: abortController.signal });
-                    
                     document.getElementById('nfc-status').innerText = "Датчик готов, поднесите карту...";
                     
                     ndef.onreading = event => {
-                        // Карта обнаружена! Вибрируем и переходим к успеху
                         if (navigator.vibrate) navigator.vibrate(200);
                         triggerSuccess();
                     };
-
                 } catch (error) {
-                    console.log("NFC Error: " + error);
-                    document.getElementById('nfc-status').innerText = "NFC доступен, но не активирован";
+                    document.getElementById('nfc-status').innerText = "NFC доступен. Поднесите карту.";
                 }
             } else {
-                document.getElementById('nfc-status').innerText = "NFC не поддерживается вашим браузером (используйте кнопку теста)";
+                document.getElementById('nfc-status').innerText = "Режим симуляции (нажмите кнопку ниже)";
             }
         }
 
-        // Переплыв на экран Успеха
         function triggerSuccess() {
-            // Останавливаем сканирование NFC
-            if (abortController) {
-                abortController.abort();
-            }
+            if (abortController) abortController.abort();
 
             document.getElementById('final-sum').innerText = parseFloat(currentSum).toFixed(2) + " ₽";
             
             screenNfc.className = "screen left";
             screenSuccess.className = "screen active";
             
-            // Звуковой сигнал успеха (синтезированный писк терминала)
             playBeep();
         }
 
-        // Сброс терминала в начало
         function resetTerminal() {
             currentSum = "0";
             updateDisplay();
@@ -418,7 +399,6 @@
             screenAmount.className = "screen active";
         }
 
-        // Звук пикания терминала
         function playBeep() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -429,15 +409,13 @@
                 gainNode.connect(audioCtx.destination);
 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime); // Высокий писк
+                oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
                 gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
 
                 oscillator.start();
-                setTimeout(() => oscillator.stop(), 150); // Короткий писк на 150мс
-            } catch(e) {
-                console.log("Audio API не поддерживается");
-            }
+                setTimeout(() => oscillator.stop(), 150);
+            } catch(e) {}
         }
     </script>
 </body>
-                  </html>
+</html>
