@@ -3,25 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SberPay Cyber Terminal Luxury</title>
+    <title>ALPHA-T-SBER: Cyber Banking OS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-dark: #05070a;
             --panel-bg: rgba(13, 17, 23, 0.85);
+            --glass-card: rgba(255, 255, 255, 0.02);
+            --border-white: rgba(255, 255, 255, 0.05);
+            
+            /* Брендовые цвета */
             --sber-neon: #00ff87;
             --sber-emerald: #059669;
+            --t-yellow: #ffdd2d;
+            --alfa-red: #ef4444;
             --cyber-blue: #3b82f6;
+            
             --text-main: #ffffff;
-            --text-dim: #4b5563;
-            --border-glow: rgba(0, 255, 135, 0.15);
+            --text-dim: #6b7280;
+            --text-muted: #4b5563;
+            
+            --font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, sans-serif;
+            font-family: var(--font-family);
             -webkit-tap-highlight-color: transparent;
         }
 
@@ -33,252 +43,553 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            background-image: radial-gradient(circle at 50% 20%, #0d1e16 0%, var(--bg-dark) 80%);
+            background-image: radial-gradient(circle at 50% 20%, #0d1622 0%, var(--bg-dark) 80%);
         }
 
-        /* Корпус терминала с неоновой обводкой */
-        .terminal {
+        /* Главный контейнер приложения (флагманский смартфон) */
+        .app-container {
             width: 100%;
-            max-width: 410px;
+            max-width: 420px;
             height: 100vh;
-            max-height: 840px;
+            max-height: 880px;
             background: var(--panel-bg);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border-radius: 40px;
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            border-radius: 44px;
             position: relative;
-            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.9), 0 0 60px rgba(0, 255, 135, 0.03);
+            box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.9), 0 0 80px rgba(59, 130, 246, 0.03);
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-white);
             display: flex;
             flex-direction: column;
         }
 
-        /* Эффект «живой» неоновой нити по контуру */
-        .terminal::before {
+        /* Живой неоновый контур смартфона */
+        .app-container::before {
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 40px;
+            border-radius: 44px;
             padding: 1px;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), var(--border-glow), transparent, rgba(255,255,255,0.05));
+            background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(59, 130, 246, 0.2), transparent, rgba(0, 255, 135, 0.1));
             -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
             -webkit-mask-composite: xor;
             mask-composite: exclude;
             pointer-events: none;
+            z-index: 99;
         }
 
-        /* Плавные переплывы окон */
-        .screen {
+        /* Экраны и логика переключения */
+        .view {
             position: absolute;
             inset: 0;
-            padding: 35px 25px;
             display: flex;
             flex-direction: column;
-            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+            transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.55s ease;
             opacity: 0;
             pointer-events: none;
+            padding: 25px 20px 85px 20px; /* Отступ снизу под навигацию */
             background: transparent;
+            overflow-y: auto;
         }
 
-        .screen.active {
+        .view.active {
             opacity: 1;
             pointer-events: auto;
             transform: translateX(0) scale(1);
         }
 
-        .screen.left { transform: translateX(-100%) scale(0.96); opacity: 0; }
-        .screen.right { transform: translateX(100%) scale(0.96); opacity: 0; }
+        .view.left { transform: translateX(-100%); opacity: 0; }
+        .view.right { transform: translateX(100%); opacity: 0; }
 
-        /* Верхняя плашка ввода */
-        .top-block {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 25px;
+        /* Кастомный Скроллбар внутри секторов */
+        .view::-webkit-scrollbar {
+            width: 4px;
+        }
+        .view::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
         }
 
-        .header {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .sber-ic {
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, var(--sber-neon) 0%, var(--sber-emerald) 100%);
-            border-radius: 50%;
-            position: relative;
-            box-shadow: 0 0 15px rgba(0, 255, 135, 0.3);
-        }
-        .sber-ic::after {
-            content: '';
+        /* НИЖНИЙ НАВИГАЦИОННЫЙ БАР (DOCK) */
+        .bottom-nav {
             position: absolute;
-            width: 5px;
-            height: 9px;
-            border: solid #05070a;
-            border-width: 0 2px 2px 0;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(45deg);
-        }
-
-        .header h1 {
-            font-size: 0.9rem;
-            font-weight: 600;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: #9ca3af;
-        }
-
-        .display-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 25px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.02);
-            box-shadow: inset 0 4px 12px rgba(0,0,0,0.5);
-        }
-
-        .amount-display {
-            font-size: 3.8rem;
-            font-weight: 600;
-            letter-spacing: -1px;
-            color: var(--text-main);
-        }
-
-        .currency {
-            font-size: 2.4rem;
-            color: var(--sber-neon);
-            margin-left: 10px;
-            text-shadow: 0 0 15px rgba(0, 255, 135, 0.4);
-        }
-
-        /* Премиальная интерактивная кнопка */
-        .btn-pay {
-            background: linear-gradient(135deg, var(--sber-neon) 0%, #006334 100%);
-            color: #030712;
-            border: none;
-            padding: 22px;
-            border-radius: 22px;
-            font-size: 1.15rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 15px 35px -5px rgba(0, 255, 135, 0.3);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .btn-pay:active {
-            transform: scale(0.97);
-            filter: brightness(1.1);
-            box-shadow: 0 5px 15px rgba(0, 255, 135, 0.1);
-        }
-
-        /* Сенсорная hi-tech клавиатура */
-        .keyboard {
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 75px;
+            background: rgba(10, 14, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border-white);
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            flex: 1;
-        }
-
-        .key {
-            background: rgba(255, 255, 255, 0.01);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            color: var(--text-main);
-            font-size: 1.9rem;
-            font-weight: 400;
-            border-radius: 24px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
+            grid-template-columns: repeat(5, 1fr);
             align-items: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 90;
+            padding: 0 10px;
         }
 
-        .key:active {
-            background: rgba(0, 255, 135, 0.08);
-            border-color: rgba(0, 255, 135, 0.3);
-            text-shadow: 0 0 10px var(--sber-neon);
-            transform: scale(0.93);
-        }
-
-        .key.action {
-            background: rgba(239, 68, 68, 0.03);
-            border-color: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-        }
-        .key.action:active {
-            background: rgba(239, 68, 68, 0.15);
-            border-color: rgba(239, 68, 68, 0.3);
-        }
-
-        /* Меню выбора методов (Без смайликов) */
-        .methods-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            flex: 1;
-            margin-top: 15px;
-        }
-
-        .method-card {
-            background: rgba(255,255,255,0.01);
-            border: 1px solid rgba(255, 255, 255, 0.03);
-            border-radius: 28px;
-            padding: 25px 20px;
+        .nav-item {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 18px;
+            gap: 6px;
             cursor: pointer;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .method-card svg {
-            width: 42px;
-            height: 42px;
-            fill: none;
-            stroke: #9ca3af;
-            stroke-width: 1.5;
+            color: var(--text-dim);
             transition: all 0.25s;
         }
 
-        .method-card:active {
-            border-color: var(--sber-neon);
-            background: rgba(0, 255, 135, 0.03);
-            box-shadow: 0 10px 25px -5px rgba(0, 255, 135, 0.1);
-            transform: scale(0.95);
+        .nav-item svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.8;
+            transition: transform 0.2s;
         }
 
-        .method-card:active svg {
-            stroke: var(--sber-neon);
-            filter: drop-shadow(0 0 8px var(--sber-neon));
+        .nav-item.active {
+            color: var(--cyber-blue);
+            text-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+        .nav-item.active.sber-theme { color: var(--sber-neon); }
+        .nav-item:active svg { transform: scale(0.88); }
+        .nav-label { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.3px; }
+
+        /* СТИЛИ КОМПОНЕНТОВ: ШАПКИ И ПРОФИЛИ */
+        .view-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-top: 10px;
         }
 
-        .method-name { font-size: 0.95rem; font-weight: 500; color: #d1d5db; text-align: center; }
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-        /* Процессинг и Анимации */
-        .process-container {
-            flex: 1;
+        .avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--cyber-blue), #8b5cf6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+        }
+
+        .greeting h3 { font-size: 1.05rem; font-weight: 600; }
+        .greeting p { font-size: 0.78rem; color: var(--text-dim); margin-top: 1px; }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .icon-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: var(--glass-card);
+            border: 1px solid var(--border-white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:active { background: rgba(255,255,255,0.08); transform: scale(0.94); }
+        .icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+        /* БАНКОВСКИЕ КАРТЫ (КОНСТРУКТОР И ВИДЖЕТЫ) */
+        .cards-carousel {
+            position: relative;
+            margin-bottom: 25px;
+            perspective: 1000px;
+        }
+
+        .bank-card {
+            width: 100%;
+            height: 210px;
+            border-radius: 28px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
-            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 25px 50px -10px rgba(0,0,0,0.7);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            background-size: cover;
+            background-position: center;
         }
 
-        .sber-spinner {
-            width: 160px;
-            height: 160px;
-            border: 2px solid rgba(255, 255, 255, 0.01);
+        /* Дефолтный премиальный темный стиль карты */
+        .card-default-bg {
+            background: linear-gradient(135deg, #141923 0%, #090b10 100%);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .card-layer {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 5;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .card-brand { font-size: 1.15rem; font-weight: 700; letter-spacing: 0.5px; }
+        .card-chip {
+            width: 32px;
+            height: 24px;
+            background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+            border-radius: 6px;
+            position: relative;
+        }
+
+        .card-middle {
+            margin-top: auto;
+            margin-bottom: 15px;
+        }
+        .card-balance-lbl { font-size: 0.75rem; color: rgba(255,255,255,0.5); letter-spacing: 0.5px; text-transform: uppercase; }
+        .card-balance { font-size: 2.1rem; font-weight: 600; margin-top: 2px; }
+
+        .card-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-number { font-size: 0.95rem; letter-spacing: 1.5px; color: rgba(255,255,255,0.85); font-family: monospace; }
+        .card-holder { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.6); }
+
+        /* ИНТЕРФЕЙСЫ ФУНКЦИЙ (БЫСТРЫЕ ДЕЙСТВИЯ) */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .section-link { font-size: 0.8rem; color: var(--cyber-blue); cursor: pointer; font-weight: 500; }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .action-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .action-circle {
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            background: var(--glass-card);
+            border: 1px solid var(--border-white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-main);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .action-container:active .action-circle {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--cyber-blue);
+            transform: translateY(-4px);
+            color: var(--cyber-blue);
+        }
+        .action-circle svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+        .action-text { font-size: 0.72rem; font-weight: 500; text-align: center; color: #9ca3af; line-height: 1.2; }
+
+        /* СПИСОК СЧЕТОВ И ЦЕЛЕЙ */
+        .accounts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .account-row {
+            background: var(--glass-card);
+            border: 1px solid var(--border-white);
+            border-radius: 20px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .account-row:active { background: rgba(255,255,255,0.04); transform: scale(0.98); }
+        
+        .account-info { display: flex; align-items: center; gap: 14px; }
+        .account-icon-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+        }
+        .acc-title { font-size: 0.92rem; font-weight: 500; }
+        .acc-subtitle { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+        .acc-amount { font-size: 1.05rem; font-weight: 600; text-align: right; }
+
+        /* ИСТОРИЯ ОПЕРАЦИЙ */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+        }
+        .hist-left { display: flex; align-items: center; gap: 14px; }
+        .hist-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-white);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1rem;
+        }
+        .hist-name { font-size: 0.9rem; font-weight: 500; }
+        .hist-date { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+        .hist-right { text-align: right; }
+        .hist-val { font-size: 0.95rem; font-weight: 600; }
+        .hist-val.plus { color: var(--sber-neon); }
+        .hist-val.minus { color: #fff; }
+
+        /* ФОРМЫ ВВОДА И СТИЛИЗАЦИЯ ИНПУТОВ (ПЛАСТИК) */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .form-label { font-size: 0.8rem; font-weight: 500; color: #9ca3af; margin-left: 4px; }
+        
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-ctrl {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-white);
+            padding: 16px 16px 16px 45px;
+            border-radius: 18px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.25s;
+        }
+        .input-ctrl:focus {
+            border-color: var(--cyber-blue);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
+        }
+        .input-wrapper svg {
+            position: absolute;
+            left: 16px;
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-dim);
+            fill: none;
+            stroke-width: 2;
+            pointer-events: none;
+        }
+
+        /* УЛЬТИМАТИВНЫЙ КОНСТРУКТОР ДИЗАЙНА КАРТ */
+        .design-selector-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .design-thumb {
+            height: 65px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .design-thumb.active { border-color: var(--cyber-blue); transform: scale(1.04); }
+        .design-thumb-lbl {
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            right: 0;
+            font-size: 0.55rem;
+            text-align: center;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 1px 0;
+        }
+
+        .upload-trigger {
+            background: var(--glass-card);
+            border: 1px dashed var(--border-white);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-dim);
+        }
+        .upload-trigger span { font-size: 0.65rem; }
+
+        /* КНОПКИ ДЕЙСТВИЯ */
+        .btn-prime {
+            background: linear-gradient(135deg, var(--cyber-blue) 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            padding: 18px;
+            border-radius: 18px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s;
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.3);
+        }
+        .btn-prime:active { transform: scale(0.98); filter: brightness(1.1); }
+
+        /* ВСТРОЕННЫЙ МОДУЛЬ СБЕР-ТЕРМИНАЛА */
+        .terminal-screen {
+            padding: 25px;
+            background: #090b0e;
+        }
+        .terminal-display {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 24px;
+            padding: 22px;
+            text-align: center;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.6);
+            margin-bottom: 15px;
+        }
+        .term-amount { font-size: 3.4rem; font-weight: 600; color: #fff; }
+        
+        .term-btn {
+            background: linear-gradient(135deg, var(--sber-neon) 0%, #006334 100%);
+            color: #030712;
+            border: none;
+            padding: 18px;
+            border-radius: 18px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 12px 25px rgba(0, 255, 135, 0.2);
+            margin-bottom: 15px;
+        }
+        .term-btn:active { transform: scale(0.97); }
+
+        .term-keyboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            flex: 1;
+        }
+        .term-key {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            color: #fff;
+            font-size: 1.6rem;
+            font-weight: 500;
+            border-radius: 18px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 58px;
+            transition: all 0.15s;
+        }
+        .term-key:active { background: rgba(0,255,135,0.1); border-color: var(--sber-neon); transform: scale(0.93); }
+        .term-key.action { background: rgba(239,68,68,0.05); color: #f87171; border-color: rgba(239,68,68,0.1); }
+
+        /* Слайдер выбора способов оплаты в терминале */
+        .term-methods-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 10px;
+        }
+        .term-method-card {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 20px;
+            padding: 20px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .term-method-card:active { border-color: var(--sber-neon); background: rgba(0,255,135,0.02); }
+        .term-method-card font { font-size: 2rem; }
+        .term-method-title { font-size: 0.85rem; font-weight: 500; color: #d1d5db; }
+
+        /* АНИМАЦИИ ПРОЦЕССИНГА ТЕРМИНАЛА */
+        .spinner-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            flex: 1;
+        }
+        .cyber-spinner {
+            width: 150px;
+            height: 150px;
+            border: 2px solid rgba(255,255,255,0.01);
             border-top: 3px solid var(--sber-neon);
             border-right: 3px solid var(--cyber-blue);
             border-radius: 50%;
@@ -288,390 +599,795 @@
             justify-content: center;
             align-items: center;
         }
-
-        .spinner-inner {
-            width: 134px;
-            height: 134px;
-            background: #0a0d13;
+        .spinner-core {
+            width: 124px;
+            height: 124px;
+            background: #090b0e;
             border-radius: 50%;
-            position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: inset 0 4px 20px rgba(0,0,0,0.8);
+            font-size: 2.8rem;
+            box-shadow: inset 0 4px 15px rgba(0,0,0,0.7);
         }
-
-        .spinner-inner svg {
-            width: 50px;
-            height: 50px;
-            stroke: #fff;
-            stroke-width: 1.5;
-            fill: none;
-        }
-
-        /* Лазерный сканер лица */
-        .face-scan-line {
+        .laser-line {
             position: absolute;
             width: 85%;
             height: 2px;
             background: linear-gradient(90deg, transparent, var(--sber-neon), transparent);
-            box-shadow: 0 0 25px var(--sber-neon);
+            box-shadow: 0 0 20px var(--sber-neon);
             top: 10%;
-            animation: scan 2.5s ease-in-out infinite;
+            animation: scan 2.2s ease-in-out infinite;
             display: none;
-            z-index: 10;
         }
-
-        /* Генератор QR */
-        .qr-wrapper {
-            background: #ffffff;
-            padding: 18px;
-            border-radius: 32px;
+        .qr-output {
+            background: #fff;
+            padding: 15px;
+            border-radius: 24px;
             display: none;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
-            animation: scaleUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
         }
 
-        /* Экран Успеха */
-        .success-screen {
-            background: linear-gradient(180deg, var(--bg-dark) 0%, #021a10 100%);
+        /* ЭКРАН УСПЕХА */
+        .success-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            text-align: center;
+            height: 100%;
         }
-
-        .success-glow-circle {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(135deg, var(--sber-neon) 0%, var(--sber-emerald) 100%);
+        .success-ring {
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
+            background: linear-gradient(135deg, var(--sber-neon) 0%, var(--sber-emerald) 100%);
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 0 50px rgba(0, 255, 135, 0.4);
-            transform: scale(0);
-            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 40px rgba(0, 255, 135, 0.3);
         }
-        .success-glow-circle svg {
-            width: 50px;
-            height: 50px;
-            stroke: #05070a;
-            stroke-width: 3;
-            fill: none;
-        }
-        .screen.active .success-glow-circle { transform: scale(1); }
+        .success-ring span { font-size: 3.5rem; color: #000; font-weight: bold; }
 
-        .btn-back {
-            background: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            color: #6b7280;
+        /* ЭКРАН АНАЛИТИКИ */
+        .analytics-container {
+            background: var(--glass-card);
+            border: 1px solid var(--border-white);
+            border-radius: 24px;
             padding: 15px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
+            margin-bottom: 20px;
         }
-        .btn-back:active { background: rgba(255, 255, 255, 0.02); color: #fff; }
+        .chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 180px;
+        }
 
-        /* Система разблокировки аудио-движка */
-        .audio-prompt {
+        /* ПОДЛОЖКА АУДИОДВИЖКА */
+        .audio-gate {
             position: absolute;
             inset: 0;
             background: var(--bg-dark);
-            z-index: 100;
+            z-index: 999;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            gap: 25px;
+            gap: 20px;
             padding: 30px;
+            text-align: center;
+        }
+        .pulse-logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--cyber-blue), var(--sber-neon));
+            border-radius: 50%;
+            animation: pulse-glow 2s infinite;
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes scan { 0%, 100% { top: 15%; opacity: 0.2; } 50% { top: 85%; opacity: 1; } }
-        @keyframes scaleUp { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
     </style>
 </head>
 <body>
 
-    <div class="audio-prompt" id="audio-screen">
-        <div class="sber-ic" style="width: 55px; height: 55px;"></div>
-        <h2 style="font-weight: 500; font-size: 1.5rem;">SberPay Cyber OS</h2>
-        <p style="color: #6b7280; font-size: 0.95rem; text-align: center; max-width: 290px;">Нажмите для безопасного запуска аудио-драйверов терминала и графических шейдеров.</p>
-        <button class="btn-pay" style="width: 100%; max-width: 280px;" onclick="initTerminalWithAudio()">Инициализация</button>
+    <div class="audio-gate" id="audio-gate-screen">
+        <div class="pulse-logo"></div>
+        <h2 style="font-weight: 600; font-size: 1.6rem; letter-spacing: -0.5px;">ALPHA-T-SBER OS</h2>
+        <p style="color: var(--text-dim); font-size: 0.9rem; max-width: 300px; line-height: 1.4;">Интегрированная банковская экосистема. Нажмите кнопку для инициализации ядра, звуковых фильтров и графического рендеринга.</p>
+        <button class="btn-prime" style="max-width: 260px;" onclick="bootBankingSystem()">Войти в систему</button>
     </div>
 
-    <div class="terminal">
+    <div class="app-container">
         
-        <div id="screen-amount" class="screen active">
-            <div class="top-block">
-                <div class="header">
-                    <div class="sber-ic"></div>
-                    <h1>SberPay Luxury</h1>
+        <div id="view-home" class="view active">
+            <div class="view-header">
+                <div class="profile-section">
+                    <div class="avatar">Я</div>
+                    <div class="greeting">
+                        <h3>Главный Экран</h3>
+                        <p>Премиальное обслуживание</p>
+                    </div>
                 </div>
-                <div class="display-container">
-                    <div class="amount-display"><span id="sum-value">0</span><span class="currency">₽</span></div>
+                <div class="header-actions">
+                    <div class="icon-btn" onclick="switchView('analytics')">
+                        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    </div>
                 </div>
-                <button class="btn-pay" onclick="goToMethods()">Выбрать способ оплаты →</button>
             </div>
 
-            <div class="keyboard">
-                <button class="key" onclick="appendNum('1')">1</button>
-                <button class="key" onclick="appendNum('2')">2</button>
-                <button class="key" onclick="appendNum('3')">3</button>
-                <button class="key" onclick="appendNum('4')">4</button>
-                <button class="key" onclick="appendNum('5')">5</button>
-                <button class="key" onclick="appendNum('6')">6</button>
-                <button class="key" onclick="appendNum('7')">7</button>
-                <button class="key" onclick="appendNum('8')">8</button>
-                <button class="key" onclick="appendNum('9')">9</button>
-                <button class="key action" onclick="clearSum()">C</button>
-                <button class="key" onclick="appendNum('0')">0</button>
-                <button class="key" onclick="appendNum('.')">.</button>
-            </div>
-        </div>
-
-        <div id="screen-methods" class="screen right">
-            <div class="header">
-                <div class="sber-ic"></div>
-                <h1>Способ оплаты</h1>
-            </div>
-            <div style="text-align: center; margin: 25px 0; font-size: 2.4rem; font-weight: 600;" id="methods-sum">0 ₽</div>
-            
-            <div class="methods-grid">
-                <div class="method-card" onclick="startProcess('nfc')">
-                    <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-                    <div class="method-name">Карта или телефон</div>
-                </div>
-                <div class="method-card" onclick="startProcess('face')">
-                    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                    <div class="method-name">Оплата улыбкой</div>
-                </div>
-                <div class="method-card" onclick="startProcess('qr')">
-                    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                    <div class="method-name">SberPay QR</div>
-                </div>
-                <div class="method-card" onclick="startProcess('sbp')">
-                    <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                    <div class="method-name">Система СБП</div>
-                </div>
-            </div>
-            <button class="btn-back" onclick="goBackToAmount()">← Вернуться к изменению суммы</button>
-        </div>
-
-        <div id="screen-process" class="screen right">
-            <div class="header">
-                <div class="sber-ic"></div>
-                <h1 id="process-title">Обработка</h1>
-            </div>
-            
-            <div class="process-container">
-                <div class="amount-display" id="process-sum" style="font-size: 2.4rem;">0 ₽</div>
-                
-                <div class="sber-spinner" id="main-spinner">
-                    <div class="spinner-inner" id="dynamic-icon-holder">
+            <div class="cards-carousel">
+                <div class="bank-card card-default-bg" id="main-bank-card">
+                    <div class="card-layer"></div>
+                    <div class="card-content">
+                        <div class="card-top">
+                            <span class="card-brand" id="card-ui-brand">T-BANK PREMIUM</span>
+                            <div class="card-chip"></div>
                         </div>
-                    <div class="face-scan-line" id="scan-line"></div>
+                        <div class="card-middle">
+                            <div class="card-balance-lbl">Текущий баланс</div>
+                            <div class="card-balance" id="wallet-balance">50 000.00 ₽</div>
+                        </div>
+                        <div class="card-bottom">
+                            <span class="card-number">•••• 4321</span>
+                            <span class="card-holder" id="card-ui-text">CYBER USER</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="quick-actions">
+                <div class="action-container" onclick="switchView('transfer-phone')">
+                    <div class="action-circle">
+                        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    </div>
+                    <span class="action-text">По номеру</span>
+                </div>
+                <div class="action-container" onclick="switchView('transfer-people')">
+                    <div class="action-circle">
+                        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <span class="action-text">Людям</span>
+                </div>
+                <div class="action-container" onclick="switchView('create-account')">
+                    <div class="action-circle">
+                        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </div>
+                    <span class="action-text">Создать счет</span>
+                </div>
+                <div class="action-container" onclick="switchView('card-customizer')">
+                    <div class="action-circle">
+                        <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+                    </div>
+                    <span class="action-text">Кастом карт</span>
+                </div>
+            </div>
+
+            <div class="section-title">
+                <span>Мои счета и цели</span>
+            </div>
+            <div class="accounts-list" id="ui-accounts-box">
                 </div>
 
-                <div class="qr-wrapper" id="qr-code-container">
-                    <div id="qrcode"></div>
+            <div class="section-title">
+                <span>История транзакций</span>
+            </div>
+            <div class="history-list" id="ui-history-box">
                 </div>
+        </div>
 
-                <div style="text-align: center; width: 100%;">
-                    <div id="process-status" style="color: #6b7280; font-size: 0.95rem; margin-bottom: 25px; min-height: 40px;">Авторизация...</div>
-                    <button class="btn-pay" style="font-size: 0.95rem; padding: 14px; width: 100%; background: rgba(255,255,255,0.02); color: #fff; box-shadow: none; border: 1px solid rgba(255,255,255,0.05);" onclick="triggerSuccess()">Пропустить шаг ✓</button>
+        <div id="view-transfer-phone" class="view right">
+            <div class="view-header">
+                <h2>Пополнение телефона</h2>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Номер мобильного телефона</label>
+                <div class="input-wrapper">
+                    <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <input type="tel" id="tx-phone-num" class="input-ctrl" placeholder="+7 (999) 000-00-00" value="+7">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Сумма списания (₽)</label>
+                <div class="input-wrapper">
+                    <span style="position: absolute; left: 16px; color: var(--text-dim); font-weight: 600;">₽</span>
+                    <input type="number" id="tx-phone-amount" class="input-ctrl" style="padding-left: 35px;" placeholder="0.00">
+                </div>
+            </div>
+            <button class="btn-prime" style="margin-top: 15px;" onclick="executePhonePay()">Оплатить телефон</button>
+            <button class="btn-back" style="margin-top: 12px;" onclick="switchView('home')">Назад на главную</button>
+        </div>
+
+        <div id="view-transfer-people" class="view right">
+            <div class="view-header">
+                <h2>Перевод клиенту</h2>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Номер карты или телефона получателя</label>
+                <div class="input-wrapper">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    <input type="text" id="tx-people-target" class="input-ctrl" placeholder="Номер карты или телефона">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Сумма перевода</label>
+                <div class="input-wrapper">
+                    <span style="position: absolute; left: 16px; color: var(--text-dim); font-weight: 600;">₽</span>
+                    <input type="number" id="tx-people-amount" class="input-ctrl" style="padding-left: 35px;" placeholder="0.00">
+                </div>
+            </div>
+            <button class="btn-prime" style="margin-top: 15px;" onclick="executePeopleTransfer()">Отправить переводы</button>
+            <button class="btn-back" style="margin-top: 12px;" onclick="switchView('home')">Назад на главную</button>
+        </div>
+
+        <div id="view-create-account" class="view right">
+            <div class="view-header">
+                <h2>Новый счет или цель</h2>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Название счета или вашей цели</label>
+                <div class="input-wrapper">
+                    <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <input type="text" id="new-acc-name" class="input-ctrl" placeholder="Например: На отпуск, Копилка">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Тип счета</label>
+                <select id="new-acc-type" class="input-ctrl" style="padding-left: 15px;">
+                    <option value="💰 Копилка">💰 Накопительный счет (Копилка)</option>
+                    <option value="💎 Инвестиции">💎 Брокерский счет (Инвестиции)</option>
+                    <option value="🚗 Автомобиль">🚗 Цель: На машину</option>
+                    <option value="🏠 Недвижимость">🏠 Цель: Квартира</option>
+                </select>
+            </div>
+            <button class="btn-prime" style="margin-top: 15px;" onclick="executeCreateAccount()">Открыть счет</button>
+            <button class="btn-back" style="margin-top: 12px;" onclick="switchView('home')">Назад</button>
+        </div>
+
+        <div id="view-card-customizer" class="view right">
+            <div class="view-header">
+                <h2>Конструктор дизайна</h2>
+            </div>
+            
+            <div class="bank-card card-default-bg" id="preview-custom-card" style="margin-bottom: 20px; box-shadow: 0 15px 30px rgba(0,0,0,0.5);">
+                <div class="card-layer"></div>
+                <div class="card-content">
+                    <div class="card-top">
+                        <span class="card-brand" id="preview-brand">T-BANK PREMIUM</span>
+                        <div class="card-chip"></div>
+                    </div>
+                    <div class="card-middle">
+                        <div class="card-balance-lbl">Превью скина</div>
+                        <div class="card-balance">50 000.00 ₽</div>
+                    </div>
+                    <div class="card-bottom">
+                        <span class="card-number">•••• 4321</span>
+                        <span class="card-holder" id="preview-holder-text">SELA - DALA EDITION</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Текст или кастомный статус на карте</label>
+                <div class="input-wrapper">
+                    <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    <input type="text" id="custom-card-text" class="input-ctrl" oninput="updateCardTextLive()" placeholder="Введите текст, например: СЕЛА - ДАЛА">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Выбрать премиальный пресет или обложку</label>
+                <div class="design-selector-grid">
+                    <div class="design-thumb active" style="background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%);" onclick="applyPresetBackground('preset1', 'СЕЛА - ДАЛА')">
+                        <div class="design-thumb-lbl">Села-Дала</div>
+                    </div>
+                    <div class="design-thumb" style="background: linear-gradient(135deg, #111 0%, #222 100%);" onclick="applyPresetBackground('preset2', 'BLACK METAL')">
+                        <div class="design-thumb-lbl">Т-Black</div>
+                    </div>
+                    <div class="design-thumb" style="background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);" onclick="applyPresetBackground('preset3', 'SBER NEON')">
+                        <div class="design-thumb-lbl">Изумруд</div>
+                    </div>
+                    <div class="design-thumb" style="background: linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%);" onclick="applyPresetBackground('preset4', 'ALFA MAGMA')">
+                        <div class="design-thumb-lbl">Магма</div>
+                    </div>
+                    <div class="design-thumb" style="background: linear-gradient(135deg, #78350f 0%, #451a03 100%);" onclick="applyPresetBackground('preset5', 'DUBAI GOLD')">
+                        <div class="design-thumb-lbl">Gold</div>
+                    </div>
+                    <label class="design-thumb upload-trigger">
+                        <input type="file" id="card-image-loader" accept="image/*" style="display: none;" onchange="loadUserCustomImage(event)">
+                        <svg viewBox="0 0 24 24" style="width:16px; height:16px; stroke: currentColor;"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                        <span>Своё фото</span>
+                    </label>
+                </div>
+            </div>
+
+            <button class="btn-prime" onclick="saveCustomCardDesign()">Применить обложку к банку</button>
+            <button class="btn-back" style="margin-top: 12px;" onclick="switchView('home')">Отмена</button>
+        </div>
+
+        <div id="view-terminal" class="view right terminal-screen">
+            <div id="term-subview-amount" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="terminal-display">
+                    <p style="font-size:0.85rem; text-transform:uppercase; color:var(--text-dim); letter-spacing:1px; margin-bottom:5px;">Сумма к списанию</p>
+                    <div class="term-amount"><span id="term-ui-value">0</span><span style="color:var(--sber-neon); margin-left:5px;">₽</span></div>
+                </div>
+                <button class="term-btn" onclick="termActionGoToMethods()">Провести оплату →</button>
+                
+                <div class="term-keyboard">
+                    <button class="term-key" onclick="termPadNum('1')">1</button>
+                    <button class="term-key" onclick="termPadNum('2')">2</button>
+                    <button class="term-key" onclick="termPadNum('3')">3</button>
+                    <button class="term-key" onclick="termPadNum('4')">4</button>
+                    <button class="term-key" onclick="termPadNum('5')">5</button>
+                    <button class="term-key" onclick="termPadNum('6')">6</button>
+                    <button class="term-key" onclick="termPadNum('7')">7</button>
+                    <button class="term-key" onclick="termPadNum('8')">8</button>
+                    <button class="term-key" onclick="termPadNum('9')">9</button>
+                    <button class="term-key action" onclick="termPadClear()">C</button>
+                    <button class="term-key" onclick="termPadNum('0')">0</button>
+                    <button class="term-key" onclick="termPadNum('.')">.</button>
+                </div>
+            </div>
+
+            <div id="term-subview-methods" style="display: none; flex-direction: column; height: 100%;">
+                <h3 style="text-align:center; font-weight:500; margin-bottom:20px;">Интерфейс SberPay</h3>
+                <div style="text-align:center; font-size:2.3rem; font-weight:600; margin-bottom:30px; color:var(--sber-neon);" id="term-ui-method-sum">0 ₽</div>
+                <div class="term-methods-grid">
+                    <div class="term-method-card" onclick="termTriggerProcess('nfc')">
+                        <font>💳</font>
+                        <span class="term-method-title">NFC / Карта</span>
+                    </div>
+                    <div class="term-method-card" onclick="termTriggerProcess('face')">
+                        <font>👤</font>
+                        <span class="term-method-title">Улыбка (Face ID)</span>
+                    </div>
+                    <div class="term-method-card" onclick="termTriggerProcess('qr')">
+                        <font>🟩</font>
+                        <span class="term-method-title">SberPay QR</span>
+                    </div>
+                    <div class="term-method-card" onclick="termTriggerProcess('sbp')">
+                        <font>🔄</font>
+                        <span class="term-method-title">Через СБП</span>
+                    </div>
+                </div>
+                <button class="btn-back" style="margin-top:auto;" onclick="termSwitchSubView('amount')">← Корректировать сумму</button>
+            </div>
+
+            <div id="term-subview-processing" style="display: none; flex-direction: column; height: 100%;">
+                <h3 style="text-align:center; font-weight:500; color:var(--text-dim);" id="term-ui-proc-title">Авторизация...</h3>
+                <div class="spinner-zone">
+                    <div style="font-size:2rem; font-weight:600;" id="term-ui-proc-sum">0.00 ₽</div>
+                    
+                    <div class="cyber-spinner" id="term-ui-spinner">
+                        <div class="spinner-core" id="term-ui-spinner-icon">💳</div>
+                        <div class="laser-line" id="term-ui-laser"></div>
+                    </div>
+
+                    <div class="qr-output" id="term-ui-qr-box">
+                        <div id="term-qrcode-engine"></div>
+                    </div>
+
+                    <div style="width:100%; text-align:center;">
+                        <p style="font-size:0.9rem; color:var(--text-dim); margin-bottom:20px; min-height:40px;" id="term-ui-status-text">Ожидание коннекта...</p>
+                        <button class="term-btn" style="background:rgba(255,255,255,0.02); color:#fff; border:1px solid rgba(255,255,255,0.05); box-shadow:none;" onclick="termForceSuccess()">Подтвердить успешный захват ✓</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="term-subview-success" style="display: none; flex-direction: column; height: 100%; justify-content:center;">
+                <div class="success-box">
+                    <div class="success-ring"><span>✓</span></div>
+                    <h2 style="font-size:1.8rem; font-weight:600;">Оплачено</h2>
+                    <p style="color:var(--text-dim); font-size:0.95rem;">Средства успешно списаны терминалом</p>
+                    <div class="term-amount" id="term-ui-success-sum" style="color:var(--sber-neon);">0.00 ₽</div>
+                    <button class="term-btn" style="width:90%; margin-top:20px;" onclick="termResetAll()">Закрыть сессию</button>
                 </div>
             </div>
         </div>
 
-        <div id="screen-success" class="screen right success-screen">
-            <div class="success-glow-circle">
-                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <div id="view-analytics" class="view right">
+            <div class="view-header">
+                <h2>Аналитика расходов</h2>
             </div>
-            <div style="text-align: center;">
-                <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 6px;">Успешно</h2>
-                <p style="color: #6b7280; font-size: 0.95rem; margin-bottom: 25px;">Транзакция одобрена банком</p>
-                <div class="amount-display" id="final-sum" style="font-size: 3.2rem; color: var(--sber-neon);">0.00 ₽</div>
+            <div class="analytics-container">
+                <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 10px;">Распределение трат за месяц</p>
+                <div class="chart-wrapper">
+                    <canvas id="bankingAnalyticsChart"></canvas>
+                </div>
             </div>
-            <button class="btn-pay" style="width: 100%;" onclick="resetTerminal()">Завершить работу</button>
+            <div class="section-title">Категории расходов</div>
+            <div class="accounts-list">
+                <div class="account-row" style="cursor:default;">
+                    <div class="account-info">
+                        <div class="account-icon-box" style="background: rgba(239,68,68,0.1); color:#ef4444;">🛒</div>
+                        <div>
+                            <div class="acc-title">Супермаркеты и продукты</div>
+                            <div class="acc-subtitle">42 операции</div>
+                        </div>
+                    </div>
+                    <div class="acc-amount">-14,200 ₽</div>
+                </div>
+                <div class="account-row" style="cursor:default;">
+                    <div class="account-info">
+                        <div class="account-icon-box" style="background: rgba(59,130,246,0.1); color:#3b82f6;">🚗</div>
+                        <div>
+                            <div class="acc-title">Транспорт и такси</div>
+                            <div class="acc-subtitle">18 операций</div>
+                        </div>
+                    </div>
+                    <div class="acc-amount">-6,800 ₽</div>
+                </div>
+            </div>
+            <button class="btn-prime" style="margin-top:20px;" onclick="switchView('home')">Вернуться на главную</button>
+        </div>
+
+        <div class="bottom-nav" id="app-main-dock">
+            <div class="nav-item active" id="dock-home" onclick="switchView('home')">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="nav-label">Главная</span>
+            </div>
+            <div class="nav-item" id="dock-phone" onclick="switchView('transfer-phone')">
+                <svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+                <span class="nav-label">Связь</span>
+            </div>
+            <div class="nav-item sber-theme" id="dock-terminal" onclick="switchView('terminal')">
+                <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, var(--sber-neon), var(--sber-emerald)); display:flex; justify-content:center; align-items:center; color:#000; font-weight:bold; box-shadow:0 0 15px rgba(0,255,135,0.4);">✓</div>
+                <span class="nav-label" style="color:var(--sber-neon);">Terminal</span>
+            </div>
+            <div class="nav-item" id="dock-custom" onclick="switchView('card-customizer')">
+                <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg>
+                <span class="nav-label">Кастом</span>
+            </div>
+            <div class="nav-item" id="dock-analytics" onclick="switchView('analytics')">
+                <svg viewBox="0 0 24 24"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                <span class="nav-label">Траты</span>
+            </div>
         </div>
 
     </div>
 
     <script>
-        let currentSum = "0";
-        const screens = {
-            amount: document.getElementById('screen-amount'),
-            methods: document.getElementById('screen-methods'),
-            process: document.getElementById('screen-process'),
-            success: document.getElementById('screen-success')
+        // ИНТЕГРИРОВАННОЕ СОСТОЯНИЕ БАНКА (STATE ENGINE)
+        const BankState = {
+            user: {
+                name: "Cyber User",
+                balance: 54200.85,
+                cardNumber: "•••• 4321",
+                cardBrand: "T-BANK PREMIUM",
+                cardText: "SELA - DALA EDITION",
+                cardBackground: "linear-gradient(135deg, #1e1b4b 0%, #311042 100%)"
+            },
+            accounts: [
+                { id: "acc1", title: "Основной счет текущий", subtitle: "Карта •••• 4321", amount: 54200.85, icon: "💳", color: "rgba(59,130,246,0.15)" },
+                { id: "acc2", title: "Копилка на Кибертрак", subtitle: "Накопительный 14%", amount: 125000.00, icon: "💰", color: "rgba(16,185,129,0.15)" },
+                { id: "acc3", title: "Высокорисковые акции", subtitle: "Брокерский счет Т-Инвестиции", amount: 8900.40, icon: "💎", color: "rgba(245,158,11,0.15)" }
+            ],
+            history: [
+                { id: "h1", name: "Супермаркет 'Магнит'", date: "Сегодня, 14:32", val: -1240.50, type: "minus", logo: "🛒" },
+                { id: "h2", name: "Перевод от Александр К.", date: "Вчера, 21:05", val: 5000.00, type: "plus", logo: "👤" },
+                { id: "h3", name: "Яндекс Такси Ultra", date: "26 июня, 18:15", val: -850.00, type: "minus", logo: "🚗" },
+                { id: "h4", name: "Вкусно и точка", date: "24 июня, 13:02", val: -420.00, type: "minus", logo: "🍔" }
+            ],
+            terminal: {
+                padValue: "0",
+                currentMethod: null,
+                abortController: null
+            },
+            audio: {
+                ctx: null,
+                ambient: null
+            },
+            chartInstance: null
         };
-        
-        let abortController = null;
-        let audioCtx = null;
-        let ambientOscillator = null;
 
-        // Палитра готовых чистых SVG-иконок для вставки внутрь спиннера
-        const svgIcons = {
-            card: `<svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
-            face: `<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+        // Темы кастомных пресетов дизайна карт
+        const cardPresets = {
+            preset1: { bg: "linear-gradient(135deg, #1e1b4b 0%, #311042 100%)", brand: "T-BANK PREMIUM", text: "SELA - DALA EDITION" },
+            preset2: { bg: "linear-gradient(135deg, #111111 0%, #252525 100%)", brand: "BLACK METAL CONCEPT", text: "TOP USER" },
+            preset3: { bg: "linear-gradient(135deg, #064e3b 0%, #022c22 100%)", brand: "SBER PRIVATE OS", text: "ECOSYSTEM EXCLUSIVE" },
+            preset4: { bg: "linear-gradient(135deg, #7f1d1d 0%, #450a0a 100%)", brand: "ALFA BLACK EDITION", text: "A-CLUB PRESTIGE" },
+            preset5: { bg: "linear-gradient(135deg, #78350f 0%, #451a03 100%)", brand: "DUBAI LUXURY GOLD", text: "VIP RESIDENT" }
         };
 
-        function initTerminalWithAudio() {
-            document.getElementById('audio-screen').style.display = 'none';
+        // ЗАПУСК И ИНИЦИАЛИЗАЦИЯ ДРАЙВЕРОВ СИСТЕМЫ
+        function bootBankingSystem() {
+            document.getElementById('audio-gate-screen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('audio-gate-screen').style.display = 'none';
+            }, 600);
+
+            // Инициализация Web Audio API движка
             try {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                startAmbientNoise();
-            } catch (e) {}
+                BankState.audio.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                startCyberAmbientSound();
+            } catch (e) { console.log("Аудио ядро заблокировано политикой ОС девайса"); }
+
+            // Первичный рендеринг данных
+            renderCoreBankData();
+            initAnalyticsChartEngine();
+            applyCurrentCardSkinToUI();
         }
 
-        function startAmbientNoise() {
+        // Басовый фоновый кибер-звук работы банковских серверов
+        function startCyberAmbientSound() {
             try {
-                ambientOscillator = audioCtx.createOscillator();
-                let ambientGain = audioCtx.createGain();
-                ambientOscillator.type = 'sine';
-                ambientOscillator.frequency.setValueAtTime(55, audioCtx.currentTime); // Более низкий, благородный гул
-                ambientGain.gain.setValueAtTime(0.008, audioCtx.currentTime);
-                ambientOscillator.connect(ambientGain);
-                ambientGain.connect(audioCtx.destination);
-                ambientOscillator.start();
-            } catch(e){}
-        }
-
-        function updateDisplay() {
-            document.getElementById('sum-value').innerText = currentSum;
-        }
-
-        function appendNum(num) {
-            if (currentSum === "0" && num !== ".") currentSum = num;
-            else {
-                if (num === "." && currentSum.includes(".")) return;
-                currentSum += num;
-            }
-            updateDisplay();
-            playClickSound();
-        }
-
-        function clearSum() { currentSum = "0"; updateDisplay(); playClickSound(); }
-
-        function goToMethods() {
-            if (parseFloat(currentSum) <= 0) return;
-            document.getElementById('methods-sum').innerText = currentSum + " ₽";
-            screens.amount.className = "screen left";
-            screens.methods.className = "screen active";
-            playClickSound();
-        }
-
-        function goBackToAmount() {
-            screens.methods.className = "screen right";
-            screens.amount.className = "screen active";
-            playClickSound();
-        }
-
-        function startProcess(type) {
-            screens.methods.className = "screen left";
-            screens.process.className = "screen active";
-            playClickSound();
-            
-            document.getElementById('process-sum').innerText = currentSum + " ₽";
-            
-            document.getElementById('main-spinner').style.display = "flex";
-            document.getElementById('qr-code-container').style.display = "none";
-            document.getElementById('scan-line').style.display = "none";
-
-            if (type === 'nfc') {
-                document.getElementById('process-title').innerText = "Бесконтактный режим";
-                document.getElementById('dynamic-icon-holder').innerHTML = svgIcons.card;
-                document.getElementById('process-status').innerText = "Приложите карту или девайс с NFC к верхней панели";
-                startNFC();
-            } 
-            else if (type === 'face') {
-                document.getElementById('process-title').innerText = "Биометрический анализ";
-                document.getElementById('dynamic-icon-holder').innerHTML = svgIcons.face;
-                document.getElementById('scan-line').style.display = "block";
-                document.getElementById('process-status').innerText = "Идет сканирование геометрии лица...";
-                setTimeout(triggerSuccess, 3200);
-            } 
-            else if (type === 'qr' || type === 'sbp') {
-                document.getElementById('process-title').innerText = type === 'qr' ? "SberPay QR" : "Интеграция СБП";
-                document.getElementById('main-spinner').style.display = "none";
-                document.getElementById('qr-code-container').style.display = "block";
-                document.getElementById('process-status').innerText = "Считайте динамический QR-код для завершения транзакции";
+                let ctx = BankState.audio.ctx;
+                BankState.audio.ambient = ctx.createOscillator();
+                let ambientGain = ctx.createGain();
                 
-                const qrContainer = document.getElementById("qrcode");
-                qrContainer.innerHTML = "";
-                new QRCode(qrContainer, {
-                    text: `https://sbp.sberbank.ru/pay?sum=${currentSum}`,
-                    width: 160,
-                    height: 160,
-                    colorDark : "#05070a",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
-            }
-        }
-
-        async function startNFC() {
-            if ('NDEFReader' in window) {
-                try {
-                    abortController = new AbortController();
-                    const ndef = new NDEFReader();
-                    await ndef.scan({ signal: abortController.signal });
-                    ndef.onreading = () => {
-                        if (navigator.vibrate) navigator.vibrate(200);
-                        triggerSuccess();
-                    };
-                } catch (e) {}
-            }
-        }
-
-        function triggerSuccess() {
-            if (abortController) abortController.abort();
-            document.getElementById('final-sum').innerText = parseFloat(currentSum).toFixed(2) + " ₽";
-            
-            screens.process.className = "screen left";
-            screens.success.className = "screen active";
-            playSuccessBeep();
-        }
-
-        function resetTerminal() {
-            currentSum = "0";
-            updateDisplay();
-            screens.success.className = "screen right";
-            screens.amount.className = "screen active";
-            playClickSound();
-        }
-
-        function playClickSound() {
-            if (!audioCtx) return;
-            try {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(900, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.04);
-                setTimeout(() => osc.stop(), 40);
+                BankState.audio.ambient.type = 'sine';
+                BankState.audio.ambient.frequency.setValueAtTime(50, ctx.currentTime); // Очень низкий плотный гул (50Hz)
+                ambientGain.gain.setValueAtTime(0.006, ctx.currentTime); // Ненавязчиво, фоном
+                
+                BankState.audio.ambient.connect(ambientGain);
+                ambientGain.connect(ctx.destination);
+                BankState.audio.ambient.start();
             } catch(e){}
         }
 
-        function playSuccessBeep() {
-            if (!audioCtx) return;
+        // Воспроизведение звука щелчка сенсорной панели
+        function playHapticTick() {
+            if (!BankState.audio.ctx) return;
             try {
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
+                let ctx = BankState.audio.ctx;
+                let osc = ctx.createOscillator();
+                let gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
-                osc.frequency.setValueAtTime(1300, audioCtx.currentTime + 0.07);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(950, ctx.currentTime);
+                gain.gain.setValueAtTime(0.015, ctx.currentTime);
                 osc.connect(gain);
-                gain.connect(audioCtx.destination);
+                gain.connect(ctx.destination);
                 osc.start();
-                gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.3);
+                gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.03);
+                setTimeout(() => osc.stop(), 30);
+            } catch(e){}
+        }
+
+        // Благородный двойной звуковой сигнал проведения платежей
+        function playTransactionSuccessBeep() {
+            if (!BankState.audio.ctx) return;
+            try {
+                let ctx = BankState.audio.ctx;
+                let osc = ctx.createOscillator();
+                let gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1050, ctx.currentTime);
+                osc.frequency.setValueAtTime(1350, ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + 0.3);
                 setTimeout(() => osc.stop(), 300);
             } catch(e){}
         }
-    </script>
-</body>
-</html>
+
+        // ДИНАМИЧЕСКИЙ СТРУКТУРНЫЙ РЕНДЕРИНГ ЭЛЕМЕНТОВ
+        function renderCoreBankData() {
+            // Баланс карты
+            document.getElementById('wallet-balance').innerText = BankState.user.balance.toLocaleString('ru-RU', { minimumFractionDigits: 2 }) + " ₽";
+
+            // Счета
+            const accountsBox = document.getElementById('ui-accounts-box');
+            accountsBox.innerHTML = "";
+            BankState.accounts.forEach(acc => {
+                accountsBox.innerHTML += `
+                    <div class="account-row">
+                        <div class="account-info">
+                            <div class="account-icon-box" style="background: ${acc.color}">${acc.icon}</div>
+                            <div>
+                                <div class="acc-title">${acc.title}</div>
+                                <div class="acc-subtitle">${acc.subtitle}</div>
+                            </div>
+                        </div>
+                        <div class="acc-amount">${acc.amount.toLocaleString('ru-RU')} ₽</div>
+                    </div>
+                `;
+            });
+
+            // Лента Истории
+            const historyBox = document.getElementById('ui-history-box');
+            historyBox.innerHTML = "";
+            BankState.history.forEach(item => {
+                const isPlus = item.type === "plus";
+                historyBox.innerHTML += `
+                    <div class="history-item">
+                        <div class="hist-left">
+                            <div class="hist-logo">${item.logo}</div>
+                            <div>
+                                <div class="hist-name">${item.name}</div>
+                                <div class="hist-date">${item.date}</div>
+                            </div>
+                        </div>
+                        <div class="hist-right">
+                            <div class="hist-val ${isPlus ? 'plus' : 'minus'}">${isPlus ? '+' : ''}${item.val.toLocaleString('ru-RU')} ₽</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // СИСТЕМА ПОТОКОВОЙ МАРШРУТИЗАЦИИ ЭКРАНОВ (ROUTING ENGINE)
+        function switchView(targetViewId) {
+            playHapticTick();
+            const views = document.querySelectorAll('.view');
+            const currentActive = document.querySelector('.view.active');
+            const targetView = document.getElementById(`view-${targetViewId}`);
+
+            if (currentActive === targetView) return;
+
+            // Настройка анимационных классов скольжения
+            views.forEach(v => {
+                if (v !== targetView && v !== currentActive) {
+                    v.className = "view right"; 
+                }
+            });
+
+            if (currentActive) {
+                currentActive.className = "view left";
+            }
+            targetView.className = "view active";
+
+            // Переключение подсветки пунктов в нижнем доке
+            const dockItems = document.querySelectorAll('.nav-item');
+            dockItems.forEach(item => item.classList.remove('active'));
+            
+            const targetedDock = document.getElementById(`dock-${targetViewId}`);
+            if (targetedDock) targetedDock.classList.add('active');
+        }
+
+        // МЕХАНИКА ФУНКЦИИ 1: ПОПОЛНЕНИЕ НОМЕРА ТЕЛЕФОНА
+        function executePhonePay() {
+            const phone = document.getElementById('tx-phone-num').value;
+            const amount = parseFloat(document.getElementById('tx-phone-amount').value);
+
+            if (!amount || amount <= 0) { alert("Задайте корректную сумму операции"); return; }
+            if (amount > BankState.user.balance) { alert("Недостаточно средств на балансе главного счета"); return; }
+
+            // Проведение транзакции
+            BankState.user.balance -= amount;
+            BankState.accounts[0].amount -= amount;
+            
+            // Внедрение в историю трат
+            BankState.history.unshift({
+                id: "h" + Math.random(),
+                name: `Оплата связи ${phone}`,
+                date: "Сегодня, только что",
+                val: -amount,
+                type: "minus",
+                logo: "📱"
+            });
+
+            // Обновление и возврат
+            renderCoreBankData();
+            playTransactionSuccessBeep();
+            alert(`Успешно оплачено ${amount} ₽ на номер ${phone}`);
+            switchView('home');
+            
+            // Сброс полей
+            document.getElementById('tx-phone-amount').value = "";
+        }
+
+        // МЕХАНИКА ФУНКЦИИ 2: ПЕРЕВОД ДРУГИМ КЛИЕНТАМ БАНКА
+        function executePeopleTransfer() {
+            const target = document.getElementById('tx-people-target').value;
+            const amount = parseFloat(document.getElementById('tx-people-amount').value);
+
+            if (!target) { alert("Укажите реквизиты получателя"); return; }
+            if (!amount || amount <= 0) { alert("Некорректное значение суммы"); return; }
+            if (amount > BankState.user.balance) { alert("Баланс вашей карты исчерпан"); return; }
+
+            BankState.user.balance -= amount;
+            BankState.accounts[0].amount -= amount;
+
+            BankState.history.unshift({
+                id: "h" + Math.random(),
+                name: `Перевод получателю ${target}`,
+                date: "Сегодня, только что",
+                val: -amount,
+                type: "minus",
+                logo: "🔄"
+            });
+
+            renderCoreBankData();
+            playTransactionSuccessBeep();
+            alert(`Денежные средства в размере ${amount} ₽ отправлены адресату`);
+            switchView('home');
+            
+            document.getElementById('tx-people-target').value = "";
+            document.getElementById('tx-people-amount').value = "";
+        }
+
+        // МЕХАНИКА ФУНКЦИИ 3: СОЗДАНИЕ И ОТКРЫТИЕ НОВОГО СЧЕТА
+        function executeCreateAccount() {
+            const name = document.getElementById('new-acc-name').value;
+            const type = document.getElementById('new-acc-type').value;
+
+            if (!name) { alert("Введите понятное имя для вашей цели"); return; }
+
+            // Добавление новой структуры в массив счетов аккаунта
+            BankState.accounts.push({
+                id: "acc" + Math.random(),
+                title: name,
+                subtitle: type,
+                amount: 0.00,
+                icon: type.split(" ")[0] || "💎",
+                color: "rgba(255,255,255,0.04)"
+            });
+
+            renderCoreBankData();
+            playTransactionSuccessBeep();
+            alert(`Поздравляем! Ваш целевой счет "${name}" успешно открыт.`);
+            switchView('home');
+
+            document.getElementById('new-acc-name').value = "";
+        }
+
+        // МЕХАНИКА ФУНКЦИИ 4: КОНСТРУКТОР ДИЗАЙНА КАРТЫ С ПРЕВЬЮ НА ЛЕТУ
+        let activeSelectedSkin = "linear-gradient(135deg, #1e1b4b 0%, #311042 100%)";
+        let activeSelectedBrand = "T-BANK PREMIUM";
+
+        function updateCardTextLive() {
+            const txt = document.getElementById('custom-card-text').value;
+            document.getElementById('preview-holder-text').innerText = txt ? txt.toUpperCase() : "CUSTOM SKIN";
+        }
+
+        function applyPresetBackground(presetKey, displayName) {
+            playHapticTick();
+            const thumbs = document.querySelectorAll('.design-thumb');
+            thumbs.forEach(t => t.classList.remove('active'));
+
+            // Активация рамки выбранного пресета
+            event.currentTarget.classList.add('active');
+
+            const p = cardPresets[presetKey];
+            activeSelectedSkin = p.bg;
+            activeSelectedBrand = p.brand;
+
+            // Накатываем на превью-карту конструктора
+            const previewCard = document.getElementById('preview-custom-card');
+            previewCard.style.backgroundImage = p.bg;
+            document.getElementById('preview-brand').innerText = p.brand;
+            
+            if(!document.getElementById('custom-card-text').value) {
+                document.getElementById('preview-holder-text').innerText = p.text;
+            }
+        }
+
+        // Чтение и рендеринг кастомного изображения пользователя (Своё Фото)
+        function loadUserCustomImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const imageUrl = `url(${event.target.result})`;
+                activeSelectedSkin = imageUrl;
+                activeSelectedBrand = "PERSONAL CUSTOM EXCLUSIVE";
+                
+                const previewCard = document.getElementById('preview-custom-card');
+                previewCard.style.backgroundImage = imageUrl;
+                document.getElementById('preview-brand').innerText = activeSelectedBrand;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function saveCustomCardDesign() {
+            // Сохраняем в состояние приложения
+            BankState.user.cardBackground = activeSelectedSkin;
+            BankState.user.cardBrand = activeSelectedBrand;
+            
+            const customTxt = document.getElementById('custom-card-text').value;
+            if (customTxt) {
+                BankState.user.cardText = customTxt.toUpperCase();
+            }
+
+            applyCurrentCardSkinToUI();
+            playTransactionSuccessBeep();
+            alert("Дизайн карты успешно обновлен в
